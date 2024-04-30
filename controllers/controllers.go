@@ -114,5 +114,68 @@ func Signup(c *gin.Context) {
 }
 
 func Login(c *gin.Context) {
+	var user models.User
+	var foundUser models.User
+	err := c.BindJSON(&user)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"status": gin.H{
+				"success": false,
+				"message": "Something went wrong.",
+			},
+		})
+		return
+	}
 
+	err = database.User.FindOne(c, bson.M{"email": user.Email}).Decode(&foundUser)
+
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"status": gin.H{
+				"success": false,
+				"message": "can't find the user",
+			},
+		})
+		return
+	}
+
+	isVerified, _ := VerifyPassword(&foundUser.Password, &user.Password)
+
+	if !isVerified {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"status": gin.H{
+				"success": false,
+				"message": "username or password is incorrect",
+			},
+		})
+		return
+	}
+
+	token, err := tokens.GenerateToken(user.Email)
+
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"status": gin.H{
+				"success": false,
+				"message": "Cannot generate token",
+			},
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"status": gin.H{
+			"message": "user created successfully",
+		},
+		"data": gin.H{
+			"_id":        foundUser.ID,
+			"first_name": foundUser.FirstName,
+			"last_name":  foundUser.LastName,
+			"email":      foundUser.Email,
+			"phone":      foundUser.Phone,
+			"token":      token,
+			"created_at": foundUser.CreatedAt,
+			"updated_at": foundUser.UpdatedAt,
+		},
+	})
 }
