@@ -7,9 +7,11 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/immdipu/e-commerce-go/database"
 	"github.com/immdipu/e-commerce-go/routes"
+	"github.com/joho/godotenv"
 )
 
 func main() {
+	godotenv.Load()
 	database.DBSet()
 	defer database.CloseDB()
 	port := os.Getenv("PORT")
